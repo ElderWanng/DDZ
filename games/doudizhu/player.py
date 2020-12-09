@@ -56,6 +56,9 @@ class DoudizhuPlayer(object):
         state['current_hand'] = cards2str(self._current_hand)
         state['others_hand'] = others_hands
         state['actions'] = actions
+        state['role'] = public['current_role']
+        state['id'] = public['current_role']
+        state['players_card'] = public['players_card']
 
         return state
 

@@ -3,11 +3,14 @@
 '''
 
 import functools
+from typing import List
+
 import numpy as np
 
 from games.doudizhu import Dealer
 from games.doudizhu.utils import cards2str, doudizhu_sort_card
 from games.doudizhu.utils import CARD_RANK_STR, CARD_RANK_STR_INDEX
+from games.doudizhu import Player
 
 
 class DoudizhuRound(object):
@@ -23,7 +26,7 @@ class DoudizhuRound(object):
         self.dealer = Dealer(self.np_random)
         self.deck_str = cards2str(self.dealer.deck)
 
-    def initiate(self, players):
+    def initiate(self, players:List[Player]):
         ''' Call dealer to deal cards and bid landlord.
 
         Args:
@@ -37,7 +40,10 @@ class DoudizhuRound(object):
         self.current_player = landlord_id
         self.public = {'deck': self.deck_str, 'seen_cards': self.seen_cards,
                        'landlord': self.landlord_id, 'trace': self.trace,
-                       'played_cards': []}
+                       'played_cards': [],
+                       'current_role':'landlord',
+                       'current_id':self.landlord_id,
+                       'players_card':[len(player.current_hand) for player in players]}
 
     @staticmethod
     def cards_ndarray_to_list(ndarray_cards):
@@ -47,7 +53,7 @@ class DoudizhuRound(object):
                 result.extend([CARD_RANK_STR[i]] * ndarray_cards[i])
         return result
 
-    def update_public(self, action):
+    def update_public(self, action,players:List[Player]):
         ''' Update public trace and played cards
 
         Args:
@@ -58,10 +64,17 @@ class DoudizhuRound(object):
             for c in action:
                 self.played_cards[CARD_RANK_STR_INDEX[c]] += 1
             self.public['played_cards'] = self.cards_ndarray_to_list(self.played_cards)
+            self
             # self.played_cards.extend(list(action))
             # self.played_cards.sort(key=functools.cmp_to_key(doudizhu_sort_str))
+        id = self.current_player
+        self.public['current_id'] = id
+        role = players[self.current_player].role
+        self.public['current_role'] = role
+        nums_cards = [len(player.current_hand) for player in players]
+        self.public['players_card'] = nums_cards
 
-    def proceed_round(self, player, action):
+    def proceed_round(self, player:Player, action,players:List[Player]):
         ''' Call other Classes's functions to keep one round running
 
         Args:
@@ -71,7 +84,7 @@ class DoudizhuRound(object):
         Returns:
             object of DoudizhuPlayer: player who played current biggest cards.
         '''
-        self.update_public(action)
+        self.update_public(action,players)
         self.greater_player = player.play(action, self.greater_player)
         return self.greater_player
 

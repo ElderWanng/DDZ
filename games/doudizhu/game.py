@@ -86,7 +86,7 @@ class DoudizhuGame(object):
 
         # perfrom action
         player = self.players[self.round.current_player]
-        self.round.proceed_round(player, action)
+        self.round.proceed_round(player, action,self.players)
         if (action != 'pass'):
             self.judger.calc_playable_cards(player)
         if self.judger.judge_game(self.players, self.round.current_player):
