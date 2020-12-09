@@ -9,10 +9,10 @@ env_eval = DoudizhuEnv()
 
 
 evaluate_every = 2
-evaluate_num = 1000
+evaluate_num = 100
 episode_num = 100
 
-memory_init_size = 1000
+memory_init_size = 100
 
 train_every = 1
 agent = DQNAgent(
