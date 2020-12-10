@@ -8,6 +8,7 @@ from envs import DoudizhuEnv
 from games.doudizhu import Player,Dealer,Round,Judger,Game
 from utils import Logger, tournament
 from rootpath import Root_Path
+
 env = DoudizhuEnv()
 env_eval = DoudizhuEnv()
 
@@ -32,6 +33,7 @@ for i in range(env.player_num):
         train_every=train_every,
         rl_learning_rate=0.1,
         sl_learning_rate=0.05,
+        reservoir_buffer_capacity=int(1e4),
         min_buffer_size_to_learn=memory_init_size,
         q_replay_memory_size=int(1e5),
         q_replay_memory_init_size=memory_init_size,

@@ -75,7 +75,7 @@ class NFSPTranformerAgent(object):
             train_every=q_train_every,
             mlp_layers=None,
             learning_rate=rl_learning_rate,
-            device=None
+            device=self.device
             )
         self._build_model()
         self.sample_episode_policy()
@@ -94,7 +94,7 @@ class NFSPTranformerAgent(object):
                 nn.init.xavier_uniform_(p.data)
 
         # configure optimizer
-        self.policy_network_optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=self._sl_learning_rate)
+        self.policy_network_optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=self._sl_learning_rate,weight_decay=0.01)
     def feed(self, ts):
         ''' Feed data to inner RL agent
 
