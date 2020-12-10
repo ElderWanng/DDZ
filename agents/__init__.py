@@ -9,6 +9,7 @@ if 'torch' in installed_packages:
     from agents.dqn_agent_pytorch import DQNAgent as DQNAgentPytorch
     from agents.nfsp_agent_pytorch import NFSPAgent as NFSPAgentPytorch
     from agents.dqn_transformer import DQNTransformer
+    from agents.nfsp_transformer import NFSPTranformerAgent
 
 
 from agents.random_agent import RandomAgent
