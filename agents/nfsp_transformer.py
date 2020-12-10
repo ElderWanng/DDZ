@@ -1,24 +1,3 @@
-# Copyright 2019 Matthew Judell. All rights reserved.
-# Copyright 2019 DATA Lab at Texas A&M University. All rights reserved.
-# Copyright 2019 DeepMind Technologies Ltd. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-''' Neural Fictitious Self-Play (NFSP) agent implemented in TensorFlow.
-
-See the paper https://arxiv.org/abs/1603.01121 for more details.
-'''
-
 import collections
 import enum
 import numpy as np
@@ -26,29 +5,20 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from agents.dqn_agent_pytorch import DQNAgent
+from agents.dqn_transformer import DQNTransformer
 from agents.ReservoirBuffer import ReservoirBuffer
 from utils.utils import remove_illegal
 
 Transition = collections.namedtuple('Transition', 'info_state action_probs')
-
 MODE = enum.Enum('mode', 'best_response average_policy')
 
-
-class NFSPAgent(object):
-    ''' An approximate clone of rlcard.agents.nfsp_agent that uses
-    pytorch instead of tensorflow.  Note that this implementation
-    differs from Henrich and Silver (2016) in that the supervised
-    training minimizes cross-entropy with respect to the stored
-    action probabilities rather than the realized actions.
-    '''
-
+class NFSPTranformerAgent(object):
     def __init__(self,
                  scope,
                  action_num=4,
                  state_shape=None,
-                 hidden_layers_sizes=None,
-                 reservoir_buffer_capacity=int(1e6),
+                 hidden_layers_sizes = None,
+                 reservoir_buffer_capacity=int(1e5),
                  anticipatory_param=0.1,
                  batch_size=256,
                  train_every=1,
@@ -64,37 +34,8 @@ class NFSPAgent(object):
                  q_epsilon_decay_steps=int(1e6),
                  q_batch_size=256,
                  q_train_every=1,
-                 q_mlp_layers=None,
                  evaluate_with='average_policy',
                  device=None):
-        ''' Initialize the NFSP agent.
-
-        Args:
-            scope (string): The name scope of NFSPAgent.
-            action_num (int): The number of actions.
-            state_shape (list): The shape of the state space.
-            hidden_layers_sizes (list): The hidden layers sizes for the layers of
-              the average policy.
-            reservoir_buffer_capacity (int): The size of the buffer for average policy.
-            anticipatory_param (float): The hyper-parameter that balances rl/avarage policy.
-            batch_size (int): The batch_size for training average policy.
-            train_every (int): Train the SL policy every X steps.
-            rl_learning_rate (float): The learning rate of the RL agent.
-            sl_learning_rate (float): the learning rate of the average policy.
-            min_buffer_size_to_learn (int): The minimum buffer size to learn for average policy.
-            q_replay_memory_size (int): The memory size of inner DQN agent.
-            q_replay_memory_init_size (int): The initial memory size of inner DQN agent.
-            q_update_target_estimator_every (int): The frequency of updating target network for
-              inner DQN agent.
-            q_discount_factor (float): The discount factor of inner DQN agent.
-            q_epsilon_start (float): The starting epsilon of inner DQN agent.
-            q_epsilon_end (float): the end epsilon of inner DQN agent.
-            q_epsilon_decay_steps (int): The decay steps of inner DQN agent.
-            q_batch_size (int): The batch size of inner DQN agent.
-            q_train_step (int): Train the model every X steps.
-            q_mlp_layers (list): The layer sizes of inner DQN agent.
-            device (torch.device): Whether to use the cpu or gpu
-        '''
         self.use_raw = False
         self._scope = scope
         self._action_num = action_num
@@ -116,40 +57,33 @@ class NFSPAgent(object):
         else:
             self.device = device
 
-        # Total timesteps
-        self.total_t = 0
-
-        # Step counter to keep track of learning.
+        self.total_t =0
         self._step_counter = 0
 
-        # Build the action-value network
-        self._rl_agent = DQNAgent(scope + '_dqn',
-                                  q_replay_memory_size,
-                                  q_replay_memory_init_size,
-                                  q_update_target_estimator_every,
-                                  q_discount_factor,
-                                  q_epsilon_start,
-                                  q_epsilon_end,
-                                  q_epsilon_decay_steps,
-                                  q_batch_size,
-                                  action_num,
-                                  state_shape,
-                                  q_train_every,
-                                  q_mlp_layers,
-                                  rl_learning_rate,
-                                  device)
-
-        # Build the average policy supervised model
+        self._rl_agent = DQNTransformer(
+            scope = scope+"transformer",
+            replay_memory_size=q_replay_memory_size,
+            replay_memory_init_size=q_replay_memory_init_size,
+            update_target_estimator_every=q_update_target_estimator_every,
+            discount_factor=q_discount_factor,
+            epsilon_start=q_epsilon_start,
+            epsilon_end=q_epsilon_end,
+            epsilon_decay_steps=q_epsilon_decay_steps,
+            batch_size=q_batch_size,
+            action_num=action_num,
+            state_shape=state_shape,
+            train_every=q_train_every,
+            mlp_layers=None,
+            learning_rate=rl_learning_rate,
+            device=None
+            )
         self._build_model()
-
         self.sample_episode_policy()
 
     def _build_model(self):
-        ''' Build the average policy network
-        '''
-
-        # configure the average policy network
-        policy_network = AveragePolicyNetwork(self._action_num, self._state_shape, self._layer_sizes)
+        policy_network = AveragePolicyNetwork(self._action_num,
+                                              self._state_shape,
+                                              self._layer_sizes)
         policy_network = policy_network.to(self.device)
         self.policy_network = policy_network
         self.policy_network.eval()
@@ -161,7 +95,6 @@ class NFSPAgent(object):
 
         # configure optimizer
         self.policy_network_optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=self._sl_learning_rate)
-
     def feed(self, ts):
         ''' Feed data to inner RL agent
 
@@ -316,7 +249,6 @@ class NFSPAgent(object):
         '''
         self.policy_network.load_state_dict(checkpoint[self._scope])
 
-
 class AveragePolicyNetwork(nn.Module):
     '''
     Approximates the history of action probabilities
@@ -362,3 +294,22 @@ class AveragePolicyNetwork(nn.Module):
         logits = self.mlp(s)
         log_action_probs = F.log_softmax(logits, dim=-1)
         return log_action_probs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

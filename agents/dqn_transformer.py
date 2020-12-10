@@ -1,29 +1,3 @@
-''' DQN agent
-
-The code is derived from https://github.com/dennybritz/reinforcement-learning/blob/master/DQN/dqn.py
-
-Copyright (c) 2019 Matthew Judell
-Copyright (c) 2019 DATA Lab at Texas A&M University
-Copyright (c) 2016 Denny Britz
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-'''
 import itertools
 
 import numpy as np
@@ -269,7 +243,7 @@ class Estimator(object):
         self.action_num = action_num
         self.learning_rate = learning_rate
         self.state_shape = state_shape
-        self.mlp_layers = mlp_layers
+        self.mlp_layers = mlp_layers #mei yong le 没用了
         self.device = device
 
         # set up Q model and place it in eval mode
@@ -420,5 +394,6 @@ class EstimatorNET(nn.Module):
 
         # x[b,len,hidden]
         head = x[:, 0:15, :].view(batch_size,-1)
+        head = head.relu()
         res = self.linear(head)
         return res
